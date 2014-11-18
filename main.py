@@ -2,6 +2,7 @@
 
 from mahjong import *
 from tiles import *
+from rules import *
 
 DEBUG = True
 
@@ -24,8 +25,21 @@ def logger(action):
     print 
 
 
-game = Mahjong()
-if DEBUG:
-    game.actionListeners.append(logger)
+# game = Mahjong()
+# if DEBUG:
+#     game.actionListeners.append(logger)
 
-game.run()
+# game.run()
+
+
+ts = Tiles()
+
+ts.add(TileSet(str2Tile('1s'), TileSet.CHOW))
+ts.add(TileSet(str2Tile('7s'), TileSet.CHOW))
+ts.add(TileSet(str2Tile('5p'), TileSet.CHOW))
+ts.add(TileSet(str2Tile('1m'), TileSet.CHOW))
+ts.add(TileSet(str2Tile('4m'), TileSet.PAIR))
+
+j = Judger()
+
+print j.judge(ts.decompose(True))

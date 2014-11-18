@@ -15,9 +15,10 @@ class TileSet:
 
     TYPE_NAMES = ['Chow', 'Pung', 'Kong', 'Pair']
 
-    def __init__(self, index, setType):
+    def __init__(self, index, setType, melded = False):
         self.index = index
         self.type = setType
+        self.melded = melded
 
 
     def toTileIndexArray(self):
@@ -230,6 +231,7 @@ class TileDecompostion:
         self.sets.append(ts)
         self.sets.sort()
 
+
     def addRest(self, t):
         self.rest.add(t)
 
@@ -268,7 +270,7 @@ def str2Tile(tile):
     if tile in Tiles.OTHER_NAMES:
         return Tiles.OTHER_NAMES.index(tile) + 3 * 9
     else:
-        return 3 * Tiles.SUIT_NAMES.index(tile[1]) + int(tile[0]) - 1
+        return 9 * Tiles.SUIT_NAMES.index(tile[1]) + int(tile[0]) - 1
 
 
 def tile2Str(tile):
