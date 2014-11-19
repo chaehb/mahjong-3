@@ -37,9 +37,15 @@ ts = Tiles()
 ts.add(TileSet(str2Tile('1s'), TileSet.CHOW))
 ts.add(TileSet(str2Tile('7s'), TileSet.CHOW))
 ts.add(TileSet(str2Tile('5p'), TileSet.CHOW))
-ts.add(TileSet(str2Tile('1m'), TileSet.CHOW))
-ts.add(TileSet(str2Tile('4m'), TileSet.PAIR))
+ts.add(TileSet(str2Tile('3s'), TileSet.PUNG))
+ts.add(TileSet(str2Tile('1s'), TileSet.PAIR))
 
 j = Judger()
+game = Mahjong()
+game.newAction(name = 'Draw', tile = 0)
 
-print j.judge(ts.decompose(True))
+print 'Judging:', ts
+score, wps = j.judge(ts.decompose(True), game)
+print 'Score:', score
+for wp in wps:
+    print wp
