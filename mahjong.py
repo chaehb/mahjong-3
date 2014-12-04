@@ -3,6 +3,7 @@
 from tiles import *
 from ai import *
 from players import *
+from rules import *
 
 class Mahjong:
 
@@ -14,9 +15,10 @@ class Mahjong:
     ACTIONS = ['Start', 'Draw End', 'Win', 'Chow', 'Pung', 'Big Melded Kong', 'Small Melded Kong', 'Concealed Kong', \
                'Draw', 'Discard', 'Replace']
 
-    def __init__(self, aiClass = [DummyAI, DummyAI, DummyAI, DummyAI], rules = []):
-        self.players = [Player(AI(self)) for AI in aiClass]
+    def __init__(self, aiClass = [DummyAI, DummyAI, DummyAI, DummyAI], judger = Judger()):
+        self.players = [Player(AI()) for AI in aiClass]
         for i in range(4):
+            self.players[i].ai.game = self
             self.players[i].seatWind = i
 
         self.prevalentWind = Mahjong.EAST
@@ -27,7 +29,7 @@ class Mahjong:
 
         # action is one dict like this: {'name' : 'xxx', 'from' : p1, 'to' : p2, 'tile' : 1}
         self.actions = []
-        self.rules = rules
+        self.judger = judger
         self.actionListeners = []
 
 
@@ -213,8 +215,11 @@ class Mahjong:
         '''
         Check if the tiles of this player can match win pattern
         '''
-        finish = len(self.tilePool) == 0
+        finish, fans = self.judger.judge(player, self)
+
         if finish:
+            self.newAction('Win', player)
+        elif len(self.tilePool) == 0:
             self.newAction('Draw End')
 
         return finish

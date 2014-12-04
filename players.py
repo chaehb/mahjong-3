@@ -5,7 +5,7 @@ from ai import *
 
 class Player:
 
-    def __init__(self, ai):
+    def __init__(self, ai = DummyAI()):
         self.ai = ai
         self.ai.player = self
         self.seatWind = None
