@@ -12,16 +12,25 @@ class TileSet:
     PUNG = 1
     KONG = 2
     PAIR = 3
+    L_CHOW = 4
+    M_CHOW = 5
+    R_CHOW = 6
+    SINGLE = 7
 
-    TYPE_NAMES = ['Chow', 'Pung', 'Kong', 'Pair']
+    TYPE_NAMES = ['Chow', 'Pung', 'Kong', 'Pair', 'L_Chow', 'M_Chow', 'R_Chow', 'Single']
 
     def __init__(self, index, setType, melded = False):
         self.index = index
         self.type = setType
         self.melded = melded
+        self.tileIndexArray = self._toTileIndexArray()
 
 
     def toTileIndexArray(self):
+        return self.tileIndexArray
+
+
+    def _toTileIndexArray(self):
         '''
         Convert a TileSet to tile index array
         '''
@@ -38,6 +47,17 @@ class TileSet:
         elif self.type == TileSet.PAIR:
             for i in range(2):
                 tiArray.append(self.index)
+        elif self.type == TileSet.L_CHOW:
+            for i in range(2):
+                tiArray.append(i + self.index)
+        elif self.type == TileSet.M_CHOW:
+            tiArray.append(self.index)
+            tiArray.append(self.index + 2)
+        elif self.type == TileSet.R_CHOW:
+            for i in range(2):
+                tiArray.append(i + self.index + 1)
+        elif self.type == TileSet.SINGLE:
+            tiArray.append(self.index)
 
         return tiArray
 
@@ -49,14 +69,14 @@ class TileSet:
 
 
     def __hash__(self):
-        return self.index * 4 + self.type
+        return self.index * 7 + self.type
 
 
     def __lt__(self, ats):
-        if self.index != ats.index:
-            return self.index < ats.index
-        else:
+        if self.type != ats.type:
             return self.type < ats.type
+        else:
+            return self.index < ats.index
 
 
     def __str__(self):
@@ -106,6 +126,53 @@ class Tiles:
         '''
         decompose the tiles collection to any possible tile set combinations.
         '''
+
+        
+        def _decomposeUnfinishedSet(tileArray, ufSet, tsArray):
+            if sum(tileArray) == 0:
+                ufSet.add(tuple(sorted(tsArray)))
+            else:
+                for i in range(3):
+                    for j in range(7):
+                        # L_CHOW
+                        if tileArray[i * 9 + j    ] > 0 and \
+                           tileArray[i * 9 + j + 1] > 0:
+                            nta = [] + tileArray
+                            tsa = [] + tsArray
+                            nta[i * 9 + j    ] -= 1
+                            nta[i * 9 + j + 1] -= 1
+                            tsa.append(TileSet(i * 9 + j, TileSet.L_CHOW))
+                            _decomposeUnfinishedSet(nta, ufSet, tsa)
+
+                        # M_CHOW
+                        if tileArray[i * 9 + j    ] > 0 and \
+                           tileArray[i * 9 + j + 2] > 0:
+                            nta = [] + tileArray
+                            tsa = [] + tsArray
+                            nta[i * 9 + j    ] -= 1
+                            nta[i * 9 + j + 2] -= 1
+                            tsa.append(TileSet(i * 9 + j, TileSet.M_CHOW))
+                            _decomposeUnfinishedSet(nta, ufSet, tsa)
+                        
+                        # R_CHOW
+                        if tileArray[i * 9 + j + 1] > 0 and \
+                           tileArray[i * 9 + j + 2] > 0:
+                            nta = [] + tileArray
+                            tsa = [] + tsArray
+                            nta[i * 9 + j + 1] -= 1
+                            nta[i * 9 + j + 2] -= 1
+                            tsa.append(TileSet(i * 9 + j, TileSet.R_CHOW))
+                            _decomposeUnfinishedSet(nta, ufSet, tsa)
+                    for j in range(9):
+                        # SINGLE
+                        if tileArray[i * 9 + j] > 0:
+                            nta = [] + tileArray
+                            tsa = [] + tsArray
+                            nta[i * 9 + j] -= 1
+                            tsa.append(TileSet(i * 9 + j, TileSet.SINGLE))
+                            _decomposeUnfinishedSet(nta, ufSet, tsa)
+
+
         def _decompose(tileArray, tdSet, tsArray):
             found = False
             for i in range(3):
@@ -132,17 +199,17 @@ class Tiles:
                     _decompose(nta, tdSet, tsa)
 
                 if tileArray[i] >= 2: # pair
-                    nta = [] + tileArray
-                    tsa = [] + tsArray
-                    nta[i] -= 2
-                    tsa.append(TileSet(i, TileSet.PAIR))
-                    found = True
-                    _decompose(nta, tdSet, tsa)
+                    if not (i >= 3 * 9 and tileArray[i] >= 3):
+                        nta = [] + tileArray
+                        tsa = [] + tsArray
+                        nta[i] -= 2
+                        tsa.append(TileSet(i, TileSet.PAIR))
+                        found = True
+                        _decompose(nta, tdSet, tsa)
 
                 # don't need to consider kong when decomposing
 
             if not found:
-                ts = Tiles()
                 if onlyWin:
                     win = True
                     for i in range(Tiles.NUM):
@@ -150,10 +217,23 @@ class Tiles:
                             win = False
                             break
                     if win:
-                        tdSet.add(TileDecompostion(tsArray, ts))
+                        tdSet.add(TileDecompostion(tsArray))
                 else:
-                    ts.tileArray = tileArray
-                    tdSet.add(TileDecompostion(tsArray, ts))
+                    otherSingleList = []
+                    for i in range(3 * 9, Tiles.NUM):
+                        if tileArray[i] != 0:
+                            tileArray[i] -= 1
+                            otherSingleList.append(TileSet(i, TileSet.SINGLE))
+
+                    ufSet = Set()
+                    _decomposeUnfinishedSet(tileArray, ufSet, [])
+                    if len(ufSet) == 0:
+                        ts = Tiles()
+                        ts.tileArray = tileArray
+                        tdSet.add(TileDecompostion(tsArray))
+                    else:
+                        for uf in ufSet:
+                            tdSet.add(TileDecompostion(tsArray + list(uf) + otherSingleList))
 
 
         tdSet = Set()
@@ -221,10 +301,9 @@ class Tiles:
 
 class TileDecompostion:
 
-    def __init__(self, sets = [], rest = Tiles()):
+    def __init__(self, sets = []):
         self.sets = sets
         self.sets.sort()
-        self.rest = rest
 
 
     def addTileSet(self, ts):
@@ -232,12 +311,8 @@ class TileDecompostion:
         self.sets.sort()
 
 
-    def addRest(self, t):
-        self.rest.add(t)
-
-
     def __eq__(self, atd):
-        return self.sets == atd.sets and self.rest == atd.rest
+        return self.sets == atd.sets
 
 
     def __hash__(self):
@@ -245,18 +320,11 @@ class TileDecompostion:
         for s in self.sets:
             h += s.__hash__()
 
-        for i in range(Tiles.NUM):
-            h += self.rest[i] * i
-
         return h
 
 
     def __str__(self):
-        restStr = str(self.rest)
-        if restStr == '':
-            return str(self.sets)
-        else:
-            return str(self.sets) + ' + ' +  restStr
+        return str(self.sets)
 
 
     def __repr__(self):
